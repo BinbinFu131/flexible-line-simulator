@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Flexible Line Simulator</title>
+    <meta
+      name="description"
+      content="A browser-based digital twin demo for flexible robotic production lines."
+    >
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="topbar" aria-label="Production controls">
+        <div class="brand-block">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <div>
+            <h1>Flexible Line Simulator</h1>
+            <p>Robotic cell, conveyor flow, inspection, and dual-process scheduling.</p>
+          </div>
+        </div>
+
+        <div class="control-cluster">
+          <fieldset class="segmented" aria-label="Process mode">
+            <legend>Mode</legend>
+            <button class="segment active" type="button" data-mode="pcb">PCB</button>
+            <button class="segment" type="button" data-mode="frame">Phone frame</button>
+          </fieldset>
+
+          <div class="control-buttons">
+            <button class="tool-button primary" type="button" id="toggleRun" aria-label="Pause line">
+              <span class="button-icon" aria-hidden="true">||</span>
+              <span>Pause</span>
+            </button>
+            <button class="tool-button" type="button" id="resetLine" aria-label="Reset line">
+              <span class="button-icon" aria-hidden="true">R</span>
+              <span>Reset</span>
+            </button>
+            <button class="tool-button warning" type="button" id="injectFault" aria-label="Inject a line fault">
+              <span class="button-icon" aria-hidden="true">!</span>
+              <span>Fault</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <div class="digital-twin-panel">
+          <div class="panel-head">
+            <div>
+              <h2 id="lineTitle">PCB flexible assembly cell</h2>
+              <p id="lineSubtitle">Automated loading, optical alignment, robot transfer, and test routing.</p>
+            </div>
+            <label class="speed-control" for="speedRange">
+              <span>Line speed</span>
+              <input id="speedRange" type="range" min="0.5" max="2.5" value="1" step="0.25">
+            </label>
+          </div>
+          <canvas id="lineCanvas" width="1280" height="720" aria-label="Animated production line simulation"></canvas>
+        </div>
+
+        <aside class="side-panel" aria-label="Line dashboard">
+          <section class="status-strip">
+            <div class="status-card">
+              <span class="metric-label">Output</span>
+              <strong id="metricOutput">0</strong>
+              <span class="metric-sub">units today</span>
+            </div>
+            <div class="status-card">
+              <span class="metric-label">Yield</span>
+              <strong id="metricYield">99.1%</strong>
+              <span class="metric-sub">rolling</span>
+            </div>
+            <div class="status-card">
+              <span class="metric-label">Cycle</span>
+              <strong id="metricCycle">7.6s</strong>
+              <span class="metric-sub">target takt</span>
+            </div>
+            <div class="status-card">
+              <span class="metric-label">OEE</span>
+              <strong id="metricOee">87%</strong>
+              <span class="metric-sub">simulated</span>
+            </div>
+          </section>
+
+          <section class="process-card">
+            <div class="section-head">
+              <h2>Route</h2>
+              <span id="activeRecipe">PCB-A12</span>
+            </div>
+            <ol class="route-list" id="routeList"></ol>
+          </section>
+
+          <section class="process-card">
+            <div class="section-head">
+              <h2>Stations</h2>
+              <span id="stationSummary">5 online</span>
+            </div>
+            <div class="station-grid" id="stationGrid"></div>
+          </section>
+
+          <section class="process-card log-card">
+            <div class="section-head">
+              <h2>Event log</h2>
+              <span id="clockReadout">00:00:00</span>
+            </div>
+            <ul class="event-log" id="eventLog"></ul>
+          </section>
+        </aside>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>

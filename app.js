@@ -1,3 +1,21 @@
+"use strict";
+
+/* =========================================================================
+ * Flexible Line Simulator
+ *
+ * Sections:
+ *   1. Localization        - all user-facing copy, per locale
+ *   2. Line configuration  - recipes come from the locale table; geometry here
+ *   3. DOM references
+ *   4. Simulation state
+ *   5. Dashboard rendering - DOM updates, event-driven (not per frame)
+ *   6. Canvas drawing      - HiDPI-aware, draws in a fixed 1280x720 space
+ *   7. Simulation update   - advances state, reports when the UI must refresh
+ *   8. Event bindings
+ * ========================================================================= */
+
+/* ===== 1. Localization ================================================== */
+
 const locale = document.documentElement.lang.toLowerCase().startsWith("zh") ? "zh" : "en";
 
 const localeCopy = {
@@ -152,6 +170,16 @@ const localeCopy = {
 const copy = localeCopy[locale];
 const recipes = copy.recipes;
 
+/* ===== 2. Line configuration ============================================ */
+
+// All canvas drawing uses a fixed virtual coordinate space; section 6 maps it
+// to the real (HiDPI-scaled) canvas buffer.
+const VIEW_W = 1280;
+const VIEW_H = 720;
+
+const FAULT_RECOVERY_SECONDS = 4.5;
+const MAX_LOG_ENTRIES = 8;
+
 const stationLayout = [
   { id: "Loader", x: 180, y: 430, w: 160, h: 128, label: copy.stations.Loader },
   { id: "Vision", x: 395, y: 318, w: 170, h: 118, label: copy.stations.Vision },
@@ -159,29 +187,6 @@ const stationLayout = [
   { id: "MTS", x: 965, y: 330, w: 170, h: 125, label: copy.stations.MTS },
   { id: "Buffer", x: 1048, y: 478, w: 160, h: 95, label: copy.stations.Buffer }
 ];
-
-const canvas = document.querySelector("#lineCanvas");
-const ctx = canvas.getContext("2d");
-const routeList = document.querySelector("#routeList");
-const stationGrid = document.querySelector("#stationGrid");
-const eventLog = document.querySelector("#eventLog");
-const toggleRun = document.querySelector("#toggleRun");
-const resetLine = document.querySelector("#resetLine");
-const injectFault = document.querySelector("#injectFault");
-const speedRange = document.querySelector("#speedRange");
-const modeButtons = document.querySelectorAll("[data-mode]");
-
-let mode = "pcb";
-let running = true;
-let speed = 1;
-let lastFrame = performance.now();
-let elapsed = 0;
-let output = 0;
-let faults = 0;
-let activeStep = 0;
-let stepClock = 0;
-let faultClock = 0;
-let logEntries = [];
 
 const linePath = [
   { x: 95, y: 530 },
@@ -202,6 +207,53 @@ const robotTargets = {
   Buffer: { x: 1120, y: 505 }
 };
 
+/* ===== 3. DOM references ================================================= */
+
+const canvas = document.querySelector("#lineCanvas");
+const ctx = canvas.getContext("2d");
+const routeList = document.querySelector("#routeList");
+const stationGrid = document.querySelector("#stationGrid");
+const eventLog = document.querySelector("#eventLog");
+const toggleRun = document.querySelector("#toggleRun");
+const resetLine = document.querySelector("#resetLine");
+const injectFault = document.querySelector("#injectFault");
+const speedRange = document.querySelector("#speedRange");
+const modeButtons = document.querySelectorAll("[data-mode]");
+const lineTitle = document.querySelector("#lineTitle");
+const lineSubtitle = document.querySelector("#lineSubtitle");
+const activeRecipeReadout = document.querySelector("#activeRecipe");
+const stationSummary = document.querySelector("#stationSummary");
+const metricOutput = document.querySelector("#metricOutput");
+const metricYield = document.querySelector("#metricYield");
+const metricCycle = document.querySelector("#metricCycle");
+const metricOee = document.querySelector("#metricOee");
+const clockReadout = document.querySelector("#clockReadout");
+
+/* ===== 4. Simulation state =============================================== */
+
+const sim = {
+  mode: "pcb",
+  running: true,
+  speed: 1,
+  elapsed: 0,
+  output: 0,
+  faults: 0,
+  activeStep: 0,
+  stepClock: 0,
+  faultClock: 0,
+  logEntries: []
+};
+
+function activeRecipe() {
+  return recipes[sim.mode];
+}
+
+function stationState(stationId) {
+  if (sim.faultClock > 0 && stationId === "Vision") return "fault";
+  const step = activeRecipe().route[sim.activeStep];
+  return step.station === stationId ? "busy" : "ready";
+}
+
 function formatClock(seconds) {
   const total = Math.floor(seconds);
   const hh = String(Math.floor(total / 3600)).padStart(2, "0");
@@ -210,24 +262,21 @@ function formatClock(seconds) {
   return `${hh}:${mm}:${ss}`;
 }
 
-function activeRecipe() {
-  return recipes[mode];
-}
-
-function stationState(stationId) {
-  if (faultClock > 0 && stationId === "Vision") return "fault";
-  const step = activeRecipe().route[activeStep];
-  return step.station === stationId ? "busy" : "ready";
-}
+/* ===== 5. Dashboard rendering ============================================
+ * The dashboard is event-driven: renderDashboard() runs only when the line
+ * state changes (step advance, fault, reset, mode switch), never per frame.
+ * Only the clock readout is refreshed from the animation loop, and only when
+ * the displayed second actually changes.
+ * ========================================================================= */
 
 function addLog(message) {
-  logEntries.unshift({ time: formatClock(elapsed), message });
-  logEntries = logEntries.slice(0, 8);
+  sim.logEntries.unshift({ time: formatClock(sim.elapsed), message });
+  sim.logEntries = sim.logEntries.slice(0, MAX_LOG_ENTRIES);
   renderLog();
 }
 
 function renderLog() {
-  eventLog.innerHTML = logEntries
+  eventLog.innerHTML = sim.logEntries
     .map(
       (entry) => `
         <li>
@@ -239,25 +288,29 @@ function renderLog() {
     .join("");
 }
 
-function renderStaticUi() {
+function renderHeadline() {
   const recipe = activeRecipe();
-  document.querySelector("#lineTitle").textContent = recipe.title;
-  document.querySelector("#lineSubtitle").textContent = recipe.subtitle;
-  document.querySelector("#activeRecipe").textContent = recipe.recipe;
-  document.querySelector("#stationSummary").textContent =
-    faultClock > 0 ? copy.stationFault : copy.stationSummary(stationLayout.length);
+  lineTitle.textContent = recipe.title;
+  lineSubtitle.textContent = recipe.subtitle;
+  activeRecipeReadout.textContent = recipe.recipe;
+}
 
-  routeList.innerHTML = recipe.route
-    .map(
+function renderRoute() {
+  routeList.innerHTML = activeRecipe()
+    .route.map(
       (step, index) => `
-        <li class="${index === activeStep ? "active-step" : ""}">
+        <li class="${index === sim.activeStep ? "active-step" : ""}">
           <span>${step.name}</span>
           <span class="duration-pill">${step.seconds.toFixed(1)}s</span>
         </li>
       `
     )
     .join("");
+}
 
+function renderStations() {
+  stationSummary.textContent =
+    sim.faultClock > 0 ? copy.stationFault : copy.stationSummary(stationLayout.length);
   stationGrid.innerHTML = stationLayout
     .map((station) => {
       const state = stationState(station.id);
@@ -269,27 +322,48 @@ function renderStaticUi() {
       `;
     })
     .join("");
-
-  document.querySelector("#metricOutput").textContent = String(output);
-  document.querySelector("#metricYield").textContent =
-    `${Math.max(94.2, recipe.yieldBase - faults * 0.3).toFixed(1)}%`;
-  document.querySelector("#metricCycle").textContent = `${recipe.cycle.toFixed(1)}s`;
-  document.querySelector("#metricOee").textContent =
-    `${Math.max(62, recipe.oeeBase - faults * 4)}%`;
-  document.querySelector("#clockReadout").textContent = formatClock(elapsed);
 }
 
-function resetSimulation(keepMode = true) {
-  if (!keepMode) mode = "pcb";
-  elapsed = 0;
-  output = 0;
-  faults = 0;
-  activeStep = 0;
-  stepClock = 0;
-  faultClock = 0;
-  logEntries = [];
-  addLog(copy.logs.loaded(activeRecipe().recipe));
-  renderStaticUi();
+function renderMetrics() {
+  const recipe = activeRecipe();
+  metricOutput.textContent = String(sim.output);
+  metricYield.textContent = `${Math.max(94.2, recipe.yieldBase - sim.faults * 0.3).toFixed(1)}%`;
+  metricCycle.textContent = `${recipe.cycle.toFixed(1)}s`;
+  metricOee.textContent = `${Math.max(62, recipe.oeeBase - sim.faults * 4)}%`;
+}
+
+let lastClockText = "";
+
+function renderClock() {
+  const text = formatClock(sim.elapsed);
+  if (text !== lastClockText) {
+    lastClockText = text;
+    clockReadout.textContent = text;
+  }
+}
+
+function renderDashboard() {
+  renderHeadline();
+  renderRoute();
+  renderStations();
+  renderMetrics();
+  renderClock();
+}
+
+/* ===== 6. Canvas drawing ================================================= */
+
+// Keeps the backing buffer matched to the element's CSS size and the device
+// pixel ratio, while every draw call keeps using VIEW_W x VIEW_H coordinates.
+function fitCanvas() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+  const cssWidth = canvas.clientWidth || VIEW_W;
+  const width = Math.round(cssWidth * dpr);
+  const height = Math.round((cssWidth * dpr * VIEW_H) / VIEW_W);
+  if (canvas.width !== width || canvas.height !== height) {
+    canvas.width = width;
+    canvas.height = height;
+  }
+  ctx.setTransform(width / VIEW_W, 0, 0, height / VIEW_H, 0, 0);
 }
 
 function progressOnPath(progress) {
@@ -324,7 +398,7 @@ function drawText(text, x, y, size = 16, color = "#172026", weight = 600) {
 
 function drawFrame() {
   ctx.fillStyle = "#f8fafb";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, VIEW_W, VIEW_H);
 
   ctx.strokeStyle = "#cbd5dd";
   ctx.lineWidth = 6;
@@ -359,10 +433,11 @@ function drawConveyor() {
   linePath.slice(1).forEach((point) => ctx.lineTo(point.x, point.y));
   ctx.stroke();
 
+  // sim.elapsed already advances with the speed factor applied
   ctx.strokeStyle = "#54616c";
   ctx.lineWidth = 2;
   for (let i = 0; i < 22; i += 1) {
-    const p = progressOnPath((i / 22 + (elapsed * 0.02 * speed) % 1) % 1);
+    const p = progressOnPath((i / 22 + (sim.elapsed * 0.02) % 1) % 1);
     ctx.beginPath();
     ctx.moveTo(p.x - 10, p.y - 18);
     ctx.lineTo(p.x + 10, p.y + 18);
@@ -404,11 +479,11 @@ function drawStation(station) {
 
 function drawRobot() {
   const recipe = activeRecipe();
-  const target = robotTargets[recipe.route[activeStep].station];
+  const target = robotTargets[recipe.route[sim.activeStep].station];
   const base = { x: 835, y: 472 };
   const armA = {
     x: base.x + (target.x - base.x) * 0.45,
-    y: base.y - 125 + Math.sin(elapsed * 3) * 4
+    y: base.y - 125 + Math.sin(sim.elapsed * 3) * 4
   };
   const wrist = {
     x: armA.x + (target.x - armA.x) * 0.66,
@@ -485,15 +560,15 @@ function drawDisplays() {
 
 function drawWorkItems() {
   const recipe = activeRecipe();
-  const cycleProgress = stepClock / recipe.route[activeStep].seconds;
-  const baseProgress = (activeStep + cycleProgress) / recipe.route.length;
+  const cycleProgress = sim.stepClock / recipe.route[sim.activeStep].seconds;
+  const baseProgress = (sim.activeStep + cycleProgress) / recipe.route.length;
   const offsets = [0, -0.2, -0.4, -0.6];
 
   offsets.forEach((offset, index) => {
     const progress = (baseProgress + offset + 1) % 1;
     const point = progressOnPath(progress);
     ctx.fillStyle = index === 0 ? recipe.itemColor : "#8a98a5";
-    if (mode === "pcb") {
+    if (sim.mode === "pcb") {
       roundedRect(point.x - 28, point.y - 14, 56, 28, 5);
       ctx.fill();
       ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
@@ -516,14 +591,14 @@ function drawHud() {
   ctx.lineWidth = 2;
   ctx.stroke();
   drawText(recipe.recipe, 122, 146, 18, "#172026", 800);
-  drawText(copy.routeStep(recipe.unitLabel, activeStep + 1, recipe.route.length), 122, 173, 14, "#60717d", 600);
+  drawText(copy.routeStep(recipe.unitLabel, sim.activeStep + 1, recipe.route.length), 122, 173, 14, "#60717d", 600);
 
   const barWidth = 248;
   ctx.fillStyle = "#e2e7ec";
   roundedRect(122, 184, barWidth, 8, 4);
   ctx.fill();
   ctx.fillStyle = recipe.accent;
-  roundedRect(122, 184, Math.max(8, barWidth * (stepClock / recipe.route[activeStep].seconds)), 8, 4);
+  roundedRect(122, 184, Math.max(8, barWidth * (sim.stepClock / recipe.route[sim.activeStep].seconds)), 8, 4);
   ctx.fill();
 }
 
@@ -537,74 +612,127 @@ function draw() {
   drawHud();
 }
 
-function tick(now) {
-  const delta = Math.min(0.08, (now - lastFrame) / 1000);
-  lastFrame = now;
+/* ===== 7. Simulation update ============================================== */
 
-  if (running) {
-    const recipe = activeRecipe();
-    const adjusted = delta * speed;
-    elapsed += adjusted;
+// Advances the line by `adjusted` (already speed-scaled) seconds.
+// Returns true when something dashboard-visible changed.
+function update(adjusted) {
+  let dashboardChanged = false;
+  sim.elapsed += adjusted;
 
-    if (faultClock > 0) {
-      faultClock = Math.max(0, faultClock - adjusted);
-      if (faultClock === 0) addLog(copy.logs.recovered);
-    } else {
-      stepClock += adjusted;
-      const step = recipe.route[activeStep];
-      if (stepClock >= step.seconds) {
-        addLog(copy.logs.stepComplete(copy.stations[step.station], step.name));
-        stepClock = 0;
-        activeStep += 1;
-        if (activeStep >= recipe.route.length) {
-          activeStep = 0;
-          output += 1;
-          addLog(copy.logs.unitFinished(recipe.unitLabel, output));
-        }
+  if (sim.faultClock > 0) {
+    sim.faultClock = Math.max(0, sim.faultClock - adjusted);
+    if (sim.faultClock === 0) {
+      addLog(copy.logs.recovered);
+      dashboardChanged = true;
+    }
+  } else {
+    sim.stepClock += adjusted;
+    const route = activeRecipe().route;
+    const step = route[sim.activeStep];
+    if (sim.stepClock >= step.seconds) {
+      addLog(copy.logs.stepComplete(copy.stations[step.station], step.name));
+      sim.stepClock = 0;
+      sim.activeStep += 1;
+      dashboardChanged = true;
+      if (sim.activeStep >= route.length) {
+        sim.activeStep = 0;
+        sim.output += 1;
+        addLog(copy.logs.unitFinished(activeRecipe().unitLabel, sim.output));
       }
     }
   }
 
-  renderStaticUi();
+  return dashboardChanged;
+}
+
+function resetSimulation() {
+  sim.elapsed = 0;
+  sim.output = 0;
+  sim.faults = 0;
+  sim.activeStep = 0;
+  sim.stepClock = 0;
+  sim.faultClock = 0;
+  sim.logEntries = [];
+  lastClockText = "";
+  addLog(copy.logs.loaded(activeRecipe().recipe));
+  renderDashboard();
   draw();
+}
+
+let lastFrame = performance.now();
+
+function tick(now) {
+  const delta = Math.min(0.08, (now - lastFrame) / 1000);
+  lastFrame = now;
+
+  // While paused nothing moves, so skip both update and draw; control
+  // handlers repaint directly when they change state.
+  if (sim.running) {
+    if (update(delta * sim.speed)) {
+      renderRoute();
+      renderStations();
+      renderMetrics();
+    }
+    renderClock();
+    draw();
+  }
+
   requestAnimationFrame(tick);
 }
 
+/* ===== 8. Event bindings ================================================= */
+
 modeButtons.forEach((button) => {
   button.addEventListener("click", () => {
-    mode = button.dataset.mode;
+    sim.mode = button.dataset.mode;
     modeButtons.forEach((item) => item.classList.toggle("active", item === button));
-    resetSimulation(true);
+    resetSimulation();
   });
 });
 
 toggleRun.addEventListener("click", () => {
-  running = !running;
-  toggleRun.querySelector(".button-icon").textContent = running ? "||" : ">";
-  toggleRun.querySelector("span:last-child").textContent = running ? copy.controls.pause : copy.controls.run;
-  toggleRun.setAttribute("aria-label", running ? copy.controls.pauseAria : copy.controls.runAria);
-  addLog(running ? copy.logs.resumed : copy.logs.paused);
-  renderStaticUi();
+  sim.running = !sim.running;
+  toggleRun.querySelector(".button-icon").textContent = sim.running ? "||" : ">";
+  toggleRun.querySelector("span:last-child").textContent =
+    sim.running ? copy.controls.pause : copy.controls.run;
+  toggleRun.setAttribute("aria-label", sim.running ? copy.controls.pauseAria : copy.controls.runAria);
+  addLog(sim.running ? copy.logs.resumed : copy.logs.paused);
   draw();
 });
 
-resetLine.addEventListener("click", () => {
-  resetSimulation(true);
-});
+resetLine.addEventListener("click", resetSimulation);
 
 injectFault.addEventListener("click", () => {
-  faults += 1;
-  faultClock = 4.5;
+  sim.faults += 1;
+  sim.faultClock = FAULT_RECOVERY_SECONDS;
   addLog(copy.logs.faultInjected);
-  renderStaticUi();
+  renderStations();
+  renderMetrics();
   draw();
 });
 
+// Speed applies immediately while dragging; the log entry is written once on
+// release to keep the event log readable.
 speedRange.addEventListener("input", () => {
-  speed = Number(speedRange.value);
-  addLog(copy.logs.speedChanged(speed));
-  renderStaticUi();
+  sim.speed = Number(speedRange.value);
 });
 
-resetSimulation(true);
+speedRange.addEventListener("change", () => {
+  addLog(copy.logs.speedChanged(sim.speed));
+});
+
+let resizePending = false;
+window.addEventListener("resize", () => {
+  if (resizePending) return;
+  resizePending = true;
+  requestAnimationFrame(() => {
+    resizePending = false;
+    fitCanvas();
+    draw();
+  });
+});
+
+fitCanvas();
+resetSimulation();
 requestAnimationFrame(tick);

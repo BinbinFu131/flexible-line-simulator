@@ -435,6 +435,18 @@ canvas {
   line-height: 1.35;
 }
 
+.page-foot {
+  max-width: 1480px;
+  margin: 16px auto 4px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.page-foot a {
+  color: var(--blue);
+}
+
 @media (max-width: 1080px) {
   .topbar {
     align-items: flex-start;

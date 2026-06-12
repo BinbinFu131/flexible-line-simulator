@@ -1,48 +1,163 @@
-const recipes = {
-  pcb: {
-    title: "PCB flexible assembly cell",
-    subtitle: "Automated loading, optical alignment, robot transfer, and test routing.",
-    recipe: "PCB-A12",
-    unitLabel: "PCB",
-    cycle: 7.6,
-    yieldBase: 99.1,
-    oeeBase: 87,
-    itemColor: "#2457c5",
-    accent: "#0b8a86",
-    route: [
-      { name: "Magazine load", station: "Loader", seconds: 1.2 },
-      { name: "Fiducial alignment", station: "Vision", seconds: 1.7 },
-      { name: "Robot transfer", station: "Robot", seconds: 1.4 },
-      { name: "Functional test", station: "MTS", seconds: 2.2 },
-      { name: "Buffer unload", station: "Buffer", seconds: 1.1 }
-    ]
+const locale = document.documentElement.lang.toLowerCase().startsWith("zh") ? "zh" : "en";
+
+const localeCopy = {
+  en: {
+    machineLabel: "MICRO-LINE X",
+    machineTagline: "Flexible robot + MTS automation demo",
+    routeStep: (unitLabel, current, total) => `${unitLabel} route step ${current} / ${total}`,
+    stationSummary: (count) => `${count} online`,
+    stationFault: "1 fault",
+    stateLabels: {
+      ready: "ready",
+      busy: "busy",
+      fault: "fault"
+    },
+    controls: {
+      pause: "Pause",
+      run: "Run",
+      pauseAria: "Pause line",
+      runAria: "Run line"
+    },
+    logs: {
+      loaded: (recipe) => `${recipe} loaded`,
+      recovered: "Vision fault cleared, automatic recovery complete",
+      stepComplete: (station, step) => `${station}: ${step} complete`,
+      unitFinished: (unitLabel, output) => `${unitLabel} unit ${String(output).padStart(3, "0")} finished`,
+      paused: "Line paused by operator",
+      resumed: "Line resumed",
+      faultInjected: "Vision alignment fault injected",
+      speedChanged: (speed) => `Line speed set to ${speed.toFixed(2)}x`
+    },
+    recipes: {
+      pcb: {
+        title: "PCB flexible assembly cell",
+        subtitle: "Automated loading, optical alignment, robot transfer, and test routing.",
+        recipe: "PCB-A12",
+        unitLabel: "PCB",
+        cycle: 7.6,
+        yieldBase: 99.1,
+        oeeBase: 87,
+        itemColor: "#2457c5",
+        accent: "#0b8a86",
+        route: [
+          { name: "Magazine load", station: "Loader", seconds: 1.2 },
+          { name: "Fiducial alignment", station: "Vision", seconds: 1.7 },
+          { name: "Robot transfer", station: "Robot", seconds: 1.4 },
+          { name: "Functional test", station: "MTS", seconds: 2.2 },
+          { name: "Buffer unload", station: "Buffer", seconds: 1.1 }
+        ]
+      },
+      frame: {
+        title: "Phone frame dual-process cell",
+        subtitle: "Flexible handling for middle-frame inspection, dispensing, pressing, and verification.",
+        recipe: "FRAME-B07",
+        unitLabel: "Frame",
+        cycle: 9.4,
+        yieldBase: 98.4,
+        oeeBase: 83,
+        itemColor: "#bd7a1f",
+        accent: "#2457c5",
+        route: [
+          { name: "Tray load", station: "Loader", seconds: 1.3 },
+          { name: "Surface inspection", station: "Vision", seconds: 1.8 },
+          { name: "Robot positioning", station: "Robot", seconds: 1.5 },
+          { name: "Dispense and press", station: "MTS", seconds: 3.4 },
+          { name: "Final verify", station: "Buffer", seconds: 1.4 }
+        ]
+      }
+    },
+    stations: {
+      Loader: "Loader",
+      Vision: "Vision",
+      Robot: "Robot",
+      MTS: "MTS",
+      Buffer: "Buffer"
+    }
   },
-  frame: {
-    title: "Phone frame dual-process cell",
-    subtitle: "Flexible handling for middle-frame inspection, dispensing, pressing, and verification.",
-    recipe: "FRAME-B07",
-    unitLabel: "Frame",
-    cycle: 9.4,
-    yieldBase: 98.4,
-    oeeBase: 83,
-    itemColor: "#bd7a1f",
-    accent: "#2457c5",
-    route: [
-      { name: "Tray load", station: "Loader", seconds: 1.3 },
-      { name: "Surface inspection", station: "Vision", seconds: 1.8 },
-      { name: "Robot positioning", station: "Robot", seconds: 1.5 },
-      { name: "Dispense and press", station: "MTS", seconds: 3.4 },
-      { name: "Final verify", station: "Buffer", seconds: 1.4 }
-    ]
+  zh: {
+    machineLabel: "微型柔性产线 X",
+    machineTagline: "机器人 + MTS 双工艺自动化演示",
+    routeStep: (unitLabel, current, total) => `${unitLabel} 工艺步骤 ${current} / ${total}`,
+    stationSummary: (count) => `${count} 个工位在线`,
+    stationFault: "1 个故障",
+    stateLabels: {
+      ready: "就绪",
+      busy: "运行",
+      fault: "故障"
+    },
+    controls: {
+      pause: "暂停",
+      run: "运行",
+      pauseAria: "暂停产线",
+      runAria: "运行产线"
+    },
+    logs: {
+      loaded: (recipe) => `${recipe} 配方已载入`,
+      recovered: "视觉故障已清除，自动恢复完成",
+      stepComplete: (station, step) => `${station}: ${step} 完成`,
+      unitFinished: (unitLabel, output) => `${unitLabel} 工件 ${String(output).padStart(3, "0")} 已完成`,
+      paused: "操作员暂停产线",
+      resumed: "产线继续运行",
+      faultInjected: "已注入视觉对位故障",
+      speedChanged: (speed) => `产线速度调整为 ${speed.toFixed(2)}x`
+    },
+    recipes: {
+      pcb: {
+        title: "PCB 柔性装配单元",
+        subtitle: "自动上料、光学对位、机器人转运与测试分流。",
+        recipe: "PCB-A12",
+        unitLabel: "PCB",
+        cycle: 7.6,
+        yieldBase: 99.1,
+        oeeBase: 87,
+        itemColor: "#2457c5",
+        accent: "#0b8a86",
+        route: [
+          { name: "料框上料", station: "Loader", seconds: 1.2 },
+          { name: "基准点对位", station: "Vision", seconds: 1.7 },
+          { name: "机器人转运", station: "Robot", seconds: 1.4 },
+          { name: "功能测试", station: "MTS", seconds: 2.2 },
+          { name: "缓存下料", station: "Buffer", seconds: 1.1 }
+        ]
+      },
+      frame: {
+        title: "手机中框双工艺单元",
+        subtitle: "面向中框检测、点胶、压合与复检的柔性搬运流程。",
+        recipe: "FRAME-B07",
+        unitLabel: "中框",
+        cycle: 9.4,
+        yieldBase: 98.4,
+        oeeBase: 83,
+        itemColor: "#bd7a1f",
+        accent: "#2457c5",
+        route: [
+          { name: "托盘上料", station: "Loader", seconds: 1.3 },
+          { name: "外观检测", station: "Vision", seconds: 1.8 },
+          { name: "机器人定位", station: "Robot", seconds: 1.5 },
+          { name: "点胶压合", station: "MTS", seconds: 3.4 },
+          { name: "终检确认", station: "Buffer", seconds: 1.4 }
+        ]
+      }
+    },
+    stations: {
+      Loader: "上料",
+      Vision: "视觉",
+      Robot: "机器人",
+      MTS: "MTS",
+      Buffer: "缓存"
+    }
   }
 };
 
+const copy = localeCopy[locale];
+const recipes = copy.recipes;
+
 const stationLayout = [
-  { id: "Loader", x: 180, y: 430, w: 160, h: 128, label: "Loader" },
-  { id: "Vision", x: 395, y: 318, w: 170, h: 118, label: "Vision" },
-  { id: "Robot", x: 730, y: 292, w: 205, h: 180, label: "Robot" },
-  { id: "MTS", x: 965, y: 330, w: 170, h: 125, label: "MTS" },
-  { id: "Buffer", x: 1048, y: 478, w: 160, h: 95, label: "Buffer" }
+  { id: "Loader", x: 180, y: 430, w: 160, h: 128, label: copy.stations.Loader },
+  { id: "Vision", x: 395, y: 318, w: 170, h: 118, label: copy.stations.Vision },
+  { id: "Robot", x: 730, y: 292, w: 205, h: 180, label: copy.stations.Robot },
+  { id: "MTS", x: 965, y: 330, w: 170, h: 125, label: copy.stations.MTS },
+  { id: "Buffer", x: 1048, y: 478, w: 160, h: 95, label: copy.stations.Buffer }
 ];
 
 const canvas = document.querySelector("#lineCanvas");
@@ -130,7 +245,7 @@ function renderStaticUi() {
   document.querySelector("#lineSubtitle").textContent = recipe.subtitle;
   document.querySelector("#activeRecipe").textContent = recipe.recipe;
   document.querySelector("#stationSummary").textContent =
-    faultClock > 0 ? "1 fault" : `${stationLayout.length} online`;
+    faultClock > 0 ? copy.stationFault : copy.stationSummary(stationLayout.length);
 
   routeList.innerHTML = recipe.route
     .map(
@@ -149,7 +264,7 @@ function renderStaticUi() {
       return `
         <div class="station-tile ${state}">
           <span class="station-name">${station.label}</span>
-          <span class="station-state"><span class="state-dot"></span>${state}</span>
+          <span class="station-state"><span class="state-dot"></span>${copy.stateLabels[state]}</span>
         </div>
       `;
     })
@@ -173,7 +288,7 @@ function resetSimulation(keepMode = true) {
   stepClock = 0;
   faultClock = 0;
   logEntries = [];
-  addLog(`${activeRecipe().recipe} loaded`);
+  addLog(copy.logs.loaded(activeRecipe().recipe));
   renderStaticUi();
 }
 
@@ -231,8 +346,8 @@ function drawFrame() {
   ctx.strokeStyle = "#d8e0e6";
   ctx.lineWidth = 2;
   ctx.stroke();
-  drawText("MICRO-LINE X", 118, 626, 18, "#2457c5", 800);
-  drawText("Flexible robot + MTS automation demo", 304, 625, 15, "#60717d", 500);
+  drawText(copy.machineLabel, 118, 626, 18, "#2457c5", 800);
+  drawText(copy.machineTagline, 304, 625, 15, "#60717d", 500);
 }
 
 function drawConveyor() {
@@ -268,7 +383,7 @@ function drawStation(station) {
   ctx.stroke();
 
   drawText(station.label, station.x + 16, station.y + 30, 16, "#172026", 800);
-  drawText(state.toUpperCase(), station.x + 16, station.y + 54, 12, stroke, 800);
+  drawText(copy.stateLabels[state], station.x + 16, station.y + 54, 12, stroke, 800);
 
   if (station.id === "Vision") {
     ctx.strokeStyle = "#8a98a5";
@@ -401,7 +516,7 @@ function drawHud() {
   ctx.lineWidth = 2;
   ctx.stroke();
   drawText(recipe.recipe, 122, 146, 18, "#172026", 800);
-  drawText(`${recipe.unitLabel} route step ${activeStep + 1} / ${recipe.route.length}`, 122, 173, 14, "#60717d", 600);
+  drawText(copy.routeStep(recipe.unitLabel, activeStep + 1, recipe.route.length), 122, 173, 14, "#60717d", 600);
 
   const barWidth = 248;
   ctx.fillStyle = "#e2e7ec";
@@ -433,18 +548,18 @@ function tick(now) {
 
     if (faultClock > 0) {
       faultClock = Math.max(0, faultClock - adjusted);
-      if (faultClock === 0) addLog("Vision fault cleared, automatic recovery complete");
+      if (faultClock === 0) addLog(copy.logs.recovered);
     } else {
       stepClock += adjusted;
       const step = recipe.route[activeStep];
       if (stepClock >= step.seconds) {
-        addLog(`${step.station}: ${step.name} complete`);
+        addLog(copy.logs.stepComplete(copy.stations[step.station], step.name));
         stepClock = 0;
         activeStep += 1;
         if (activeStep >= recipe.route.length) {
           activeStep = 0;
           output += 1;
-          addLog(`${recipe.unitLabel} unit ${String(output).padStart(3, "0")} finished`);
+          addLog(copy.logs.unitFinished(recipe.unitLabel, output));
         }
       }
     }
@@ -466,9 +581,9 @@ modeButtons.forEach((button) => {
 toggleRun.addEventListener("click", () => {
   running = !running;
   toggleRun.querySelector(".button-icon").textContent = running ? "||" : ">";
-  toggleRun.querySelector("span:last-child").textContent = running ? "Pause" : "Run";
-  toggleRun.setAttribute("aria-label", running ? "Pause line" : "Run line");
-  addLog(running ? "Line resumed" : "Line paused by operator");
+  toggleRun.querySelector("span:last-child").textContent = running ? copy.controls.pause : copy.controls.run;
+  toggleRun.setAttribute("aria-label", running ? copy.controls.pauseAria : copy.controls.runAria);
+  addLog(running ? copy.logs.resumed : copy.logs.paused);
   renderStaticUi();
   draw();
 });
@@ -480,14 +595,14 @@ resetLine.addEventListener("click", () => {
 injectFault.addEventListener("click", () => {
   faults += 1;
   faultClock = 4.5;
-  addLog("Vision alignment fault injected");
+  addLog(copy.logs.faultInjected);
   renderStaticUi();
   draw();
 });
 
 speedRange.addEventListener("input", () => {
   speed = Number(speedRange.value);
-  addLog(`Line speed set to ${speed.toFixed(2)}x`);
+  addLog(copy.logs.speedChanged(speed));
   renderStaticUi();
 });
 

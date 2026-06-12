@@ -1,47 +1,47 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Flexible Line Simulator</title>
+    <title>柔性产线模拟器</title>
     <meta
       name="description"
-      content="A browser-based digital twin demo for flexible robotic production lines."
+      content="面向柔性机器人产线的浏览器数字孪生演示。"
     >
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
     <main class="app-shell">
-      <section class="topbar" aria-label="Production controls">
+      <section class="topbar" aria-label="生产控制">
         <div class="brand-block">
           <span class="brand-mark" aria-hidden="true"></span>
           <div>
-            <h1>Flexible Line Simulator</h1>
-            <p>Robotic cell, conveyor flow, inspection, and dual-process scheduling.</p>
+            <h1>柔性产线模拟器</h1>
+            <p>机器人单元、输送流转、视觉检测与双工艺调度。</p>
           </div>
         </div>
 
         <div class="control-cluster">
-          <a class="language-link" href="zh-cn.html">中文镜像</a>
+          <a class="language-link" href="index.html">English</a>
 
-          <fieldset class="segmented" aria-label="Process mode">
-            <legend>Mode</legend>
+          <fieldset class="segmented" aria-label="工艺模式">
+            <legend>模式</legend>
             <button class="segment active" type="button" data-mode="pcb">PCB</button>
-            <button class="segment" type="button" data-mode="frame">Phone frame</button>
+            <button class="segment" type="button" data-mode="frame">手机中框</button>
           </fieldset>
 
           <div class="control-buttons">
-            <button class="tool-button primary" type="button" id="toggleRun" aria-label="Pause line">
+            <button class="tool-button primary" type="button" id="toggleRun" aria-label="暂停产线">
               <span class="button-icon" aria-hidden="true">||</span>
-              <span>Pause</span>
+              <span>暂停</span>
             </button>
-            <button class="tool-button" type="button" id="resetLine" aria-label="Reset line">
+            <button class="tool-button" type="button" id="resetLine" aria-label="重置产线">
               <span class="button-icon" aria-hidden="true">R</span>
-              <span>Reset</span>
+              <span>重置</span>
             </button>
-            <button class="tool-button warning" type="button" id="injectFault" aria-label="Inject a line fault">
+            <button class="tool-button warning" type="button" id="injectFault" aria-label="注入产线故障">
               <span class="button-icon" aria-hidden="true">!</span>
-              <span>Fault</span>
+              <span>故障</span>
             </button>
           </div>
         </div>
@@ -51,44 +51,44 @@
         <div class="digital-twin-panel">
           <div class="panel-head">
             <div>
-              <h2 id="lineTitle">PCB flexible assembly cell</h2>
-              <p id="lineSubtitle">Automated loading, optical alignment, robot transfer, and test routing.</p>
+              <h2 id="lineTitle">PCB 柔性装配单元</h2>
+              <p id="lineSubtitle">自动上料、光学对位、机器人转运与测试分流。</p>
             </div>
             <label class="speed-control" for="speedRange">
-              <span>Line speed</span>
+              <span>产线速度</span>
               <input id="speedRange" type="range" min="0.5" max="2.5" value="1" step="0.25">
             </label>
           </div>
-          <canvas id="lineCanvas" width="1280" height="720" aria-label="Animated production line simulation"></canvas>
+          <canvas id="lineCanvas" width="1280" height="720" aria-label="动态产线仿真画布"></canvas>
         </div>
 
-        <aside class="side-panel" aria-label="Line dashboard">
+        <aside class="side-panel" aria-label="产线看板">
           <section class="status-strip">
             <div class="status-card">
-              <span class="metric-label">Output</span>
+              <span class="metric-label">产量</span>
               <strong id="metricOutput">0</strong>
-              <span class="metric-sub">units today</span>
+              <span class="metric-sub">今日工件数</span>
             </div>
             <div class="status-card">
-              <span class="metric-label">Yield</span>
+              <span class="metric-label">良率</span>
               <strong id="metricYield">99.1%</strong>
-              <span class="metric-sub">rolling</span>
+              <span class="metric-sub">滚动统计</span>
             </div>
             <div class="status-card">
-              <span class="metric-label">Cycle</span>
+              <span class="metric-label">节拍</span>
               <strong id="metricCycle">7.6s</strong>
-              <span class="metric-sub">target takt</span>
+              <span class="metric-sub">目标节拍</span>
             </div>
             <div class="status-card">
               <span class="metric-label">OEE</span>
               <strong id="metricOee">87%</strong>
-              <span class="metric-sub">simulated</span>
+              <span class="metric-sub">仿真数据</span>
             </div>
           </section>
 
           <section class="process-card">
             <div class="section-head">
-              <h2>Route</h2>
+              <h2>工艺路线</h2>
               <span id="activeRecipe">PCB-A12</span>
             </div>
             <ol class="route-list" id="routeList"></ol>
@@ -96,15 +96,15 @@
 
           <section class="process-card">
             <div class="section-head">
-              <h2>Stations</h2>
-              <span id="stationSummary">5 online</span>
+              <h2>工位状态</h2>
+              <span id="stationSummary">5 个工位在线</span>
             </div>
             <div class="station-grid" id="stationGrid"></div>
           </section>
 
           <section class="process-card log-card">
             <div class="section-head">
-              <h2>Event log</h2>
+              <h2>事件日志</h2>
               <span id="clockReadout">00:00:00</span>
             </div>
             <ul class="event-log" id="eventLog"></ul>

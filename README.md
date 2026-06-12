@@ -13,15 +13,16 @@ This browser project simulates a robotic production cell with conveyor flow, wor
 - Event log for route completion and injected faults
 - No build step and no external runtime dependencies
 
-## Chinese Mirror
+## Language Versions
 
-Open `zh-cn.html` for a Chinese mirror version intended for local debugging and reading.
+| Language | Entry file | GitHub Pages |
+|----------|------------|--------------|
+| English | `index.html` | https://binbinfu131.github.io/flexible-line-simulator/ |
+| Deutsch | `de.html` | https://binbinfu131.github.io/flexible-line-simulator/de.html |
+| 中文 | `zh-cn.html` | https://binbinfu131.github.io/flexible-line-simulator/zh-cn.html |
 
-On GitHub Pages:
-
-```text
-https://binbinfu131.github.io/flexible-line-simulator/zh-cn.html
-```
+All versions share `styles.css` and `app.js`; the UI copy is selected from the
+locale table in `app.js` based on the page's `lang` attribute.
 
 ## Run Locally
 

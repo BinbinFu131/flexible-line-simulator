@@ -16,7 +16,8 @@
 
 /* ===== 1. Localization ================================================== */
 
-const locale = document.documentElement.lang.toLowerCase().startsWith("zh") ? "zh" : "en";
+const pageLang = document.documentElement.lang.toLowerCase();
+const locale = pageLang.startsWith("zh") ? "zh" : pageLang.startsWith("de") ? "de" : "en";
 
 const localeCopy = {
   en: {
@@ -90,6 +91,79 @@ const localeCopy = {
       Robot: "Robot",
       MTS: "MTS",
       Buffer: "Buffer"
+    }
+  },
+  de: {
+    machineLabel: "MICRO-LINE X",
+    machineTagline: "Flexible Roboter- + MTS-Automatisierungsdemo",
+    routeStep: (unitLabel, current, total) => `${unitLabel}: Prozessschritt ${current} / ${total}`,
+    stationSummary: (count) => `${count} online`,
+    stationFault: "1 Störung",
+    stateLabels: {
+      ready: "bereit",
+      busy: "aktiv",
+      fault: "Störung"
+    },
+    controls: {
+      pause: "Pause",
+      run: "Start",
+      pauseAria: "Linie pausieren",
+      runAria: "Linie starten"
+    },
+    logs: {
+      loaded: (recipe) => `${recipe} geladen`,
+      recovered: "Vision-Störung behoben, automatische Erholung abgeschlossen",
+      stepComplete: (station, step) => `${station}: ${step} abgeschlossen`,
+      unitFinished: (unitLabel, output) => `${unitLabel}-Einheit ${String(output).padStart(3, "0")} fertiggestellt`,
+      paused: "Linie vom Bediener pausiert",
+      resumed: "Linie fortgesetzt",
+      faultInjected: "Vision-Ausrichtungsstörung injiziert",
+      speedChanged: (speed) => `Liniengeschwindigkeit auf ${speed.toFixed(2)}x gesetzt`
+    },
+    recipes: {
+      pcb: {
+        title: "Flexible PCB-Montagezelle",
+        subtitle: "Automatisches Laden, optische Ausrichtung, Robotertransfer und Testrouting.",
+        recipe: "PCB-A12",
+        unitLabel: "PCB",
+        cycle: 7.6,
+        yieldBase: 99.1,
+        oeeBase: 87,
+        itemColor: "#2457c5",
+        accent: "#0b8a86",
+        route: [
+          { name: "Magazin laden", station: "Loader", seconds: 1.2 },
+          { name: "Fiducial-Ausrichtung", station: "Vision", seconds: 1.7 },
+          { name: "Robotertransfer", station: "Robot", seconds: 1.4 },
+          { name: "Funktionstest", station: "MTS", seconds: 2.2 },
+          { name: "Puffer entladen", station: "Buffer", seconds: 1.1 }
+        ]
+      },
+      frame: {
+        title: "Doppelprozesszelle für Handy-Mittelrahmen",
+        subtitle: "Flexibles Handling für Mittelrahmen-Inspektion, Dosieren, Pressen und Endprüfung.",
+        recipe: "FRAME-B07",
+        unitLabel: "Rahmen",
+        cycle: 9.4,
+        yieldBase: 98.4,
+        oeeBase: 83,
+        itemColor: "#bd7a1f",
+        accent: "#2457c5",
+        route: [
+          { name: "Tray laden", station: "Loader", seconds: 1.3 },
+          { name: "Oberflächeninspektion", station: "Vision", seconds: 1.8 },
+          { name: "Roboterpositionierung", station: "Robot", seconds: 1.5 },
+          { name: "Dosieren und Pressen", station: "MTS", seconds: 3.4 },
+          { name: "Endprüfung", station: "Buffer", seconds: 1.4 }
+        ]
+      }
+    },
+    stations: {
+      Loader: "Beladung",
+      Vision: "Vision",
+      Robot: "Roboter",
+      MTS: "MTS",
+      Buffer: "Puffer"
     }
   },
   zh: {

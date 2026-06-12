@@ -1,17 +1,17 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="de">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>柔性产线模拟器</title>
+    <title>Flexible Line Simulator – Deutsch</title>
     <meta
       name="description"
-      content="面向柔性机器人产线的浏览器数字孪生演示。"
+      content="Eine browserbasierte Digital-Twin-Demo für flexible robotergestützte Produktionslinien."
     >
-    <meta property="og:title" content="柔性产线模拟器">
-    <meta property="og:description" content="面向柔性机器人产线的浏览器数字孪生演示。">
+    <meta property="og:title" content="Flexible Line Simulator – Deutsch">
+    <meta property="og:description" content="Eine browserbasierte Digital-Twin-Demo für flexible robotergestützte Produktionslinien.">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://binbinfu131.github.io/flexible-line-simulator/zh-cn.html">
+    <meta property="og:url" content="https://binbinfu131.github.io/flexible-line-simulator/de.html">
     <link rel="alternate" hreflang="en" href="https://binbinfu131.github.io/flexible-line-simulator/">
     <link rel="alternate" hreflang="zh-CN" href="https://binbinfu131.github.io/flexible-line-simulator/zh-cn.html">
     <link rel="alternate" hreflang="de" href="https://binbinfu131.github.io/flexible-line-simulator/de.html">
@@ -21,37 +21,37 @@
   </head>
   <body>
     <main class="app-shell">
-      <section class="topbar" aria-label="生产控制">
+      <section class="topbar" aria-label="Liniensteuerung">
         <div class="brand-block">
           <span class="brand-mark" aria-hidden="true"></span>
           <div>
-            <h1>柔性产线模拟器</h1>
-            <p>机器人单元、输送流转、视觉检测与双工艺调度。</p>
+            <h1>Flexible Line Simulator</h1>
+            <p>Roboterzelle, Förderfluss, Inspektion und Doppelprozess-Planung.</p>
           </div>
         </div>
 
         <div class="control-cluster">
           <a class="language-link" href="index.html">English</a>
-          <a class="language-link" href="de.html">Deutsch</a>
+          <a class="language-link" href="zh-cn.html">中文</a>
 
-          <fieldset class="segmented" aria-label="工艺模式">
-            <legend>模式</legend>
+          <fieldset class="segmented" aria-label="Prozessmodus">
+            <legend>Modus</legend>
             <button class="segment active" type="button" data-mode="pcb">PCB</button>
-            <button class="segment" type="button" data-mode="frame">手机中框</button>
+            <button class="segment" type="button" data-mode="frame">Mittelrahmen</button>
           </fieldset>
 
           <div class="control-buttons">
-            <button class="tool-button primary" type="button" id="toggleRun" aria-label="暂停产线">
+            <button class="tool-button primary" type="button" id="toggleRun" aria-label="Linie pausieren">
               <span class="button-icon" aria-hidden="true">||</span>
-              <span>暂停</span>
+              <span>Pause</span>
             </button>
-            <button class="tool-button" type="button" id="resetLine" aria-label="重置产线">
+            <button class="tool-button" type="button" id="resetLine" aria-label="Linie zurücksetzen">
               <span class="button-icon" aria-hidden="true">R</span>
-              <span>重置</span>
+              <span>Zurücksetzen</span>
             </button>
-            <button class="tool-button warning" type="button" id="injectFault" aria-label="注入产线故障">
+            <button class="tool-button warning" type="button" id="injectFault" aria-label="Störung injizieren">
               <span class="button-icon" aria-hidden="true">!</span>
-              <span>故障</span>
+              <span>Störung</span>
             </button>
           </div>
         </div>
@@ -61,44 +61,44 @@
         <div class="digital-twin-panel">
           <div class="panel-head">
             <div>
-              <h2 id="lineTitle">PCB 柔性装配单元</h2>
-              <p id="lineSubtitle">自动上料、光学对位、机器人转运与测试分流。</p>
+              <h2 id="lineTitle">Flexible PCB-Montagezelle</h2>
+              <p id="lineSubtitle">Automatisches Laden, optische Ausrichtung, Robotertransfer und Testrouting.</p>
             </div>
             <label class="speed-control" for="speedRange">
-              <span>产线速度</span>
+              <span>Liniengeschwindigkeit</span>
               <input id="speedRange" type="range" min="0.5" max="2.5" value="1" step="0.25">
             </label>
           </div>
-          <canvas id="lineCanvas" width="1280" height="720" aria-label="动态产线仿真画布"></canvas>
+          <canvas id="lineCanvas" width="1280" height="720" aria-label="Animierte Produktionslinien-Simulation"></canvas>
         </div>
 
-        <aside class="side-panel" aria-label="产线看板">
+        <aside class="side-panel" aria-label="Linien-Dashboard">
           <section class="status-strip">
             <div class="status-card">
-              <span class="metric-label">产量</span>
+              <span class="metric-label">Ausbringung</span>
               <strong id="metricOutput">0</strong>
-              <span class="metric-sub">今日工件数</span>
+              <span class="metric-sub">Stück heute</span>
             </div>
             <div class="status-card">
-              <span class="metric-label">良率</span>
+              <span class="metric-label">Ausbeute</span>
               <strong id="metricYield">99.1%</strong>
-              <span class="metric-sub">滚动统计</span>
+              <span class="metric-sub">gleitend</span>
             </div>
             <div class="status-card">
-              <span class="metric-label">节拍</span>
+              <span class="metric-label">Takt</span>
               <strong id="metricCycle">7.6s</strong>
-              <span class="metric-sub">目标节拍</span>
+              <span class="metric-sub">Soll-Takt</span>
             </div>
             <div class="status-card">
               <span class="metric-label">OEE</span>
               <strong id="metricOee">87%</strong>
-              <span class="metric-sub">仿真数据</span>
+              <span class="metric-sub">simuliert</span>
             </div>
           </section>
 
           <section class="process-card">
             <div class="section-head">
-              <h2>工艺路线</h2>
+              <h2>Prozessroute</h2>
               <span id="activeRecipe">PCB-A12</span>
             </div>
             <ol class="route-list" id="routeList"></ol>
@@ -106,15 +106,15 @@
 
           <section class="process-card">
             <div class="section-head">
-              <h2>工位状态</h2>
-              <span id="stationSummary">5 个工位在线</span>
+              <h2>Stationen</h2>
+              <span id="stationSummary">5 online</span>
             </div>
             <div class="station-grid" id="stationGrid"></div>
           </section>
 
           <section class="process-card log-card">
             <div class="section-head">
-              <h2>事件日志</h2>
+              <h2>Ereignisprotokoll</h2>
               <span id="clockReadout">00:00:00</span>
             </div>
             <ul class="event-log" id="eventLog"></ul>
@@ -124,8 +124,10 @@
 
       <footer class="page-foot">
         <p>
-          教学用前端仿真演示（作品集项目），并非真实工业控制系统，不涉及任何真实设备、厂商或生产数据。
-          <a href="https://github.com/BinbinFu131/flexible-line-simulator">GitHub 源码</a>
+          Pädagogische Front-End-Simulation, entstanden als Portfolio-Projekt. Kein reales
+          industrielles Steuerungssystem; es sind keine realen Anlagen, Hersteller oder
+          Produktionsdaten beteiligt.
+          <a href="https://github.com/BinbinFu131/flexible-line-simulator">Quellcode auf GitHub</a>
         </p>
       </footer>
     </main>
